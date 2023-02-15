@@ -1,15 +1,16 @@
 use ghost_cell::{GhostToken, GhostCell};
 
 #[derive(Clone)]
-pub struct Hook<'id> {
-    children: [Option<HookRef<'id>>; 2],
-    parent: Option<HookRef<'id>>,
+pub struct Hook<'a, 'id> {
+    children: [Option<HookRef<'a, 'id>>; 2],
+    parent: Option<HookRef<'a, 'id>>,
     key: u32,
 }
-type HookC<'id> = GhostCell<'id, Hook<'id>>;
-type HookRef<'id> = &'id HookC<'id>;
 
-impl<'id> Hook<'id> {
+type HookC<'a, 'id> = GhostCell<'id, Hook<'a, 'id>>;
+type HookRef<'a, 'id> = &'a HookC<'a, 'id>;
+
+impl<'a, 'id> Hook<'a, 'id> {
     pub fn print(&self, token: &GhostToken<'id>) -> () {
         println!("(");
         if let Some(child) = &self.children[0] {
@@ -22,7 +23,7 @@ impl<'id> Hook<'id> {
         println!(")")
     }
     
-    pub fn new(token: &'id mut GhostToken<'id>, key: u32) -> HookC<'id> {
+    pub fn new(key: u32) -> HookC<'a, 'id> {
         GhostCell::new( Self {
             children: [None, None],
             parent: None,
@@ -30,11 +31,11 @@ impl<'id> Hook<'id> {
         })
     }
 
-    pub fn tree_extremum(token: &GhostToken<'id>, root: HookRef<'id>, i: usize) -> Option<HookRef<'id>> {
-        let mut curr = Some(root);
+    pub fn tree_extremum(token: &'a GhostToken<'id>, root: HookRef<'a, 'id>, i: usize) -> HookRef<'a, 'id> {
+        let mut curr = root;
         while {
-            if let Some(c) = curr {
-                curr = c.borrow(token).children[i];    
+            if let Some(c) = curr.borrow(token).children[i] {
+                curr = c;    
                 true
             } else {
                 false
