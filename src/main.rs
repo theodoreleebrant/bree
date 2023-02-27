@@ -1,4 +1,4 @@
-use ghost_cell::{GhostToken, GhostCell};
+use ghost_cell::{GhostToken};
 mod tree;
 
 fn main() {

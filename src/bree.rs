@@ -13,6 +13,7 @@ use std::{
 pub struct BinarySearchBree {
     root: Option<RcRefCell<Hook>>,
 }
+
 impl BinarySearchBree {
     pub fn new() -> Self {
         Self { root: None }
@@ -36,6 +37,7 @@ impl BinarySearchBree {
             self.root = Some(rc_ref_cell(Hook::new(key)));
         }
     }
+
     /// キーで検索して、あればひとつ（もっとも上にあるもの）を消します
     pub fn delete(&mut self, key: u32) -> Option<u32> {
         if let Some(x) = self.search(key) {
@@ -217,7 +219,7 @@ impl Hook {
     }
     fn tree_extremum(mut root: RcRefCell<Self>, i: usize) -> RcRefCell<Self> {
         while {
-            let left = root.borrow().children[i].as_ref().map(Rc::clone);
+            let left = root.borrow(token).children[i].as_ref().map(Rc::clone);
             if let Some(left) = left {
                 root = left;
                 true
@@ -240,6 +242,7 @@ impl Hook {
             .as_ref()
             .map(|parent| Weak::upgrade(parent).unwrap())
     }
+    
     fn collect_vec(&self, vec: &mut Vec<u32>) {
         if let Some(child) = &self.children[0] {
             child.borrow().collect_vec(vec);
