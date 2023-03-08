@@ -2,21 +2,21 @@ use std::{
     cell::{Ref, RefCell},
     rc::{Rc}
 };
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use ghost_cell::{GhostToken, GhostCell};
 
 #[derive(Clone)]
-pub struct Hook<'a, 'id> {
-    children: [Option<HookRef<'a, 'id>>; 2],
-    parent: Option<HookRef<'a, 'id>>,
-    key: u32,
+pub struct Hook<'id, 'a> {
+    children: [Option<Arc<GhostCell<'id, Hook<'id, 'a>>>>; 2],
+    parent: Option<Weak<GhostCell<'id, Hook<'id, 'a>>>>,
+    pub key: u32,
 }
 
-type HookC<'a, 'id> = GhostCell<'id, Hook<'a, 'id>>;
-type HookRef<'a, 'id> = &'a HookC<'a, 'id>;
+// type HookC<'a, 'id> = GhostCell<'id, Hook<'a, 'id>>;
+// type HookRef<'a, 'id> = &'a HookC<'a, 'id>;
 // alternatively, use `StaticRc` instead of `Arc`
 
-impl<'a, 'id> Hook<'a, 'id> {
+impl<'id, 'a> Hook<'id, 'a> {
     pub fn print(&self, token: &GhostToken<'id>) -> () {
         println!("(");
         if let Some(child) = self.children[0] {
@@ -29,15 +29,15 @@ impl<'a, 'id> Hook<'a, 'id> {
         println!(")")
     }
     
-    pub fn new(key: u32) -> HookC<'a, 'id> {
-        GhostCell::new( Self {
+    pub fn new(key: u32) -> Arc<GhostCell<'id, Self>> {
+        Arc::new(GhostCell::new( Self {
             children: [None, None],
             parent: None,
             key,
-        })
+        }))
     }
 
-    pub fn tree_extremum(token: &'a GhostToken<'id>, root: HookRef<'a, 'id>, i: usize) -> HookRef<'a, 'id> {
+    pub fn tree_extremum(token: &'a GhostToken<'id>, root: Arc<GhostCell<'id, Self>>, i: usize) -> Arc<GhostCell<'id, Self>> {
         let mut curr = root;
         while {
             if let Some(c) = curr.borrow(token).children[i] {
@@ -50,15 +50,15 @@ impl<'a, 'id> Hook<'a, 'id> {
         curr
     }
 
-    fn connect(x: HookRef<'a, 'id>, i: usize, y: Option<HookRef<'a, 'id>>, token: &'a mut GhostToken<'id>) {
+    fn connect(x: &Arc<GhostCell<'id, Self>>, i: usize, y: Option<Arc<GhostCell<'id, Hook<'a, 'id>>>>, token: &'a mut GhostToken<'id>) {
         x.borrow_mut(token).children[i] = y;
         if let Some(y) = y {
-            y.borrow_mut(token).parent = Some(x);
+            y.borrow_mut(token).parent = Some(Arc::downgrade(x));
         }
     }
 
-    fn parent(&self) -> Option<HookRef<'a, 'id>> {
-        self.parent
+    fn parent(&self) -> Option<Arc<GhostCell<'id, Hook>>> {
+        self.parent?.upgrade()
     }
 
     fn collect_vec(&self, vec: &mut Vec<u32>, token: &'a GhostToken<'id>) {
@@ -121,3 +121,41 @@ impl<'a, 'id> Hook<'a, 'id> {
     // }
     
 }
+
+// // type HookC<'a, 'id> = GhostCell<'id, Hook<'a, 'id>>;
+// pub struct BinarySearchTree<'a, 'id> {
+//     root: Option<HookRef<'a, 'id>>,
+// }
+
+// impl<'a, 'id> BinarySearchTree<'a, 'id> {
+//     pub fn new() -> Self {
+//         Self { root: None }
+//     }
+
+// //     type HookC<'a, 'id> = GhostCell<'id, Hook<'a, 'id>>;
+// // type HookRef<'a, 'id> = &'a HookC<'a, 'id>;
+// // fn connect(
+//     // x: HookRef<'a, 'id>, 
+//     // i: usize, 
+//     // y: Option<HookRef<'a, 'id>>, 
+//     // token: &'a mut GhostToken<'id>)
+
+//     pub fn insert(&mut self, key: u32, token: &'a mut GhostToken<'id>) {
+//         if let Some(root) = self.root {
+//             let mut x: &HookC = root;
+//             let i = loop {
+//                 let i = if key <= x.borrow(token).key { 0 } else { 1 };
+//                 let y = x.borrow(token).children[i];
+//                 if let Some(y) = y {
+//                     x = y;
+//                 } else {
+//                     break i;
+//                 }
+//             };
+//             let hook = Hook::new(key);
+//             Hook::connect(x, i, Some(&hook), token);
+//         } else {
+//             self.root = Some(&Hook::new(key));
+//         }
+//     }
+// }
