@@ -19,11 +19,11 @@ pub struct Hook<'id, 'a> {
 impl<'id, 'a> Hook<'id, 'a> {
     pub fn print(&self, token: &GhostToken<'id>) -> () {
         println!("(");
-        if let Some(child) = self.children[0] {
+        if let Some(child) = &self.children[0] {
             child.borrow(token).print(token);
         }
         println!("{}", self.key);
-        if let Some(child) = self.children[1] {
+        if let Some(child) = &self.children[1] {
             child.borrow(token).print(token);
         }
         println!(")")
@@ -37,10 +37,10 @@ impl<'id, 'a> Hook<'id, 'a> {
         }))
     }
 
-    pub fn tree_extremum(token: &'a GhostToken<'id>, root: Arc<GhostCell<'id, Self>>, i: usize) -> Arc<GhostCell<'id, Self>> {
+    pub fn tree_extremum(token: &'a GhostToken<'id>, root: &'a Arc<GhostCell<'id, Self>>, i: usize) -> &'a Arc<GhostCell<'id, Self>> {
         let mut curr = root;
         while {
-            if let Some(c) = curr.borrow(token).children[i] {
+            if let Some(c) = &curr.borrow(token).children[i] {
                 curr = c;    
                 true
             } else {
@@ -50,23 +50,23 @@ impl<'id, 'a> Hook<'id, 'a> {
         curr
     }
 
-    fn connect(x: &Arc<GhostCell<'id, Self>>, i: usize, y: Option<Arc<GhostCell<'id, Hook<'a, 'id>>>>, token: &'a mut GhostToken<'id>) {
-        x.borrow_mut(token).children[i] = y;
-        if let Some(y) = y {
-            y.borrow_mut(token).parent = Some(Arc::downgrade(x));
+    fn connect(x: &Arc<GhostCell<'id, Self>>, i: usize, y: Option<Arc<GhostCell<'id, Hook<'id, 'a>>>>, token: &'a mut GhostToken<'id>) {
+        x.borrow_mut(token).children[i] = y.clone();
+        if let Some(z) = y {
+            z.borrow_mut(token).parent = Some(Arc::downgrade(x));
         }
     }
 
-    fn parent(&self) -> Option<Arc<GhostCell<'id, Hook>>> {
-        self.parent?.upgrade()
+    fn parent(&'a self) -> Option<Arc<GhostCell<'id, Hook<'id, 'a>>>> {
+        self.parent.as_ref().and_then(|p: &'a Weak<GhostCell<'id, Hook>> | p.upgrade())
     }
 
     fn collect_vec(&self, vec: &mut Vec<u32>, token: &'a GhostToken<'id>) {
-        if let Some(child) = self.children[0] {
+        if let Some(child) = &self.children[0] {
             child.borrow(token).collect_vec(vec, token);
         }
         vec.push(self.key);
-        if let Some(child) = self.children[1] {
+        if let Some(child) = &self.children[1] {
             child.borrow(token).collect_vec(vec, token);
         }
     }
