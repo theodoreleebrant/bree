@@ -219,7 +219,7 @@ impl Hook {
     }
     fn tree_extremum(mut root: RcRefCell<Self>, i: usize) -> RcRefCell<Self> {
         while {
-            let left = root.borrow(token).children[i].as_ref().map(Rc::clone);
+            let left = root.borrow(token).children[i].as_ref();
             if let Some(left) = left {
                 root = left;
                 true

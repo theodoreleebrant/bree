@@ -122,40 +122,40 @@ impl<'id, 'a> Hook<'id, 'a> {
     
 }
 
-// // type HookC<'a, 'id> = GhostCell<'id, Hook<'a, 'id>>;
-// pub struct BinarySearchTree<'a, 'id> {
-//     root: Option<HookRef<'a, 'id>>,
-// }
+// type HookC<'a, 'id> = GhostCell<'id, Hook<'a, 'id>>;
+pub struct BinarySearchTree<'id, 'a> {
+    root: Option<Arc<GhostCell<'id, Hook<'id, 'a>>>>,
+}
 
-// impl<'a, 'id> BinarySearchTree<'a, 'id> {
-//     pub fn new() -> Self {
-//         Self { root: None }
-//     }
+impl<'id, 'a> BinarySearchTree<'id, 'a> {
+    pub fn new() -> Self {
+        Self { root: None }
+    }
 
-// //     type HookC<'a, 'id> = GhostCell<'id, Hook<'a, 'id>>;
-// // type HookRef<'a, 'id> = &'a HookC<'a, 'id>;
-// // fn connect(
-//     // x: HookRef<'a, 'id>, 
-//     // i: usize, 
-//     // y: Option<HookRef<'a, 'id>>, 
-//     // token: &'a mut GhostToken<'id>)
+//     type HookC<'a, 'id> = GhostCell<'id, Hook<'a, 'id>>;
+// type HookRef<'a, 'id> = &'a HookC<'a, 'id>;
+// fn connect(
+    // x: HookRef<'a, 'id>, 
+    // i: usize, 
+    // y: Option<HookRef<'a, 'id>>, 
+    // token: &'a mut GhostToken<'id>)
 
-//     pub fn insert(&mut self, key: u32, token: &'a mut GhostToken<'id>) {
-//         if let Some(root) = self.root {
-//             let mut x: &HookC = root;
-//             let i = loop {
-//                 let i = if key <= x.borrow(token).key { 0 } else { 1 };
-//                 let y = x.borrow(token).children[i];
-//                 if let Some(y) = y {
-//                     x = y;
-//                 } else {
-//                     break i;
-//                 }
-//             };
-//             let hook = Hook::new(key);
-//             Hook::connect(x, i, Some(&hook), token);
-//         } else {
-//             self.root = Some(&Hook::new(key));
-//         }
-//     }
-// }
+    pub fn insert(&mut self, key: u32, token: &'a mut GhostToken<'id>) {
+        if let Some(root) = &self.root {
+            let mut x: Arc<GhostCell<'id, Hook<'id, 'a>>> = root.clone();
+                let i = loop {
+                    let i = if key <= x.borrow(token).key { 0 } else { 1 };
+                    let y = x.borrow(token).children[i].as_ref().map(Arc::clone);
+                    if let Some(z) = y {
+                        x = z;
+                    } else {
+                        break i;
+                    }
+                };
+            let hook = Hook::new(key);
+            Hook::connect(&x, i, Some(hook), token);
+        } else {
+            self.root = Some(Hook::new(key));
+        }
+    }
+}
